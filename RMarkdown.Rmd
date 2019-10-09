@@ -1,0 +1,246 @@
+# **Overview**
+ Since 2008, guests and hosts have used Airbnb to expand on traveling possibilities
+ and present more unique, personalized way of experiencing the world.This dataset describes
+ the listing activity and metrics in NYC, NY for 2019.
+
+```{r }
+# installing packages
+
+# loading libraries
+library(ggplot2)
+library(e1071)
+library(scales)
+library(dplyr)
+library(tidyr)
+library(RColorBrewer)
+```
+
+***Importing Datasets***
+```{r}
+our.data = read.csv("input/AB_NYC_2019.csv", stringsAsFactors = F)
+```
+
+***Data Preprocessing***
+```{r}
+dim(our.data)
+```
+
+```{r}
+str(our.data)
+```
+
+```{r include=FALSE}
+get_missing_data_df = function(x){
+  column_names = c()
+  missing_count = c()
+  missing_percent = c()
+  
+  for (i in 1:ncol(x)) {
+    if(sum(is.na(x[i])) > 0){
+      column_name = names(x[i])
+      count = sum(is.na(x[i]))
+      per = round((count*100 / nrow(x)), 2)
+      
+      column_names = c(column_names, column_name)
+      missing_count = c(missing_count, count)
+      missing_percent = c(missing_percent, per)
+    }
+  }
+  
+  missing_df = data.frame(column_name = column_names, missing_count = missing_count, 
+                          missing_percent = missing_percent)
+  
+  return(missing_df)
+}
+
+```
+
+
+*Missing Values*
+```{r}
+# user defined function to find the columns having missing values
+missing_df = get_missing_data_df(our.data) 
+missing_df
+```
+
+*Note*: only 'reviews_per_month' variable has missing values we'll replace all NA's with 0.
+
+```{r}
+our.data$reviews_per_month = ifelse(is.na(our.data$reviews_per_month), 0, 
+                                    our.data$reviews_per_month)
+```
+
+*Note*: Still it might be possible that some variables contains empty fields, which we'll handle in our exploratory analysis.
+
+***Exploratory Analysis***
+```{r}
+# Dropping 'Id' and 'host_name' from our dataset as they are insignificant.
+our.data = our.data[, -c(1, 4)]
+head(our.data, 4)
+```
+
+Exploring Columns
+
+* Price
+```{r}
+# Price - Plot Density Graph
+
+ggplot(data = our.data, mapping = aes(x = price)) +
+  geom_density(fill = "#45d16a", col = "#054516", alpha = 0.8) +
+  ggtitle("Price Density Graph")
+```
+
+```{r}
+skewness(our.data$price)
+```
+
+*NOTE:* We observe that price is highly right skewed, that means a large amount of property price is less than $500.
+
+* Minimum Nights
+```{r}
+length(unique(our.data$minimum_nights))
+```
+
+```{r}
+# Scatter plot between Price and minimum_nights
+ggplot(data = our.data, mapping = aes(x = minimum_nights, y = price)) +
+  geom_point(col = '#7ef79e') +
+  ggtitle("Price Vs Minimum_Nights") +
+  ylab("Price") +
+  xlab("Minimum Nights")
+```
+
+* Neighbourhood_group
+```{r}
+length(unique(our.data$neighbourhood_group))
+unique(our.data$neighbourhood_group)
+```
+
+This variable is seems to be a categorical variable, hence changing this variable to factors.
+
+
+```{r}
+# Neighbourhood_group and price
+our.data$neighbourhood_group = as.factor(our.data$neighbourhood_group)
+
+```
+
+Creating a new data frame which contains the price median value for each neighbourhood group.
+```{r}
+price_per_neighbourhood_group = our.data %>% 
+  group_by(neighbourhood_group) %>%
+  summarise(median_price = median(price))
+
+price_per_neighbourhood_group
+```
+
+A bar graph for Neighbourhood group based on their property price.
+```{r}
+ggplot(data = price_per_neighbourhood_group, mapping = aes(x = reorder(neighbourhood_group, median_price), 
+                                                           y = median_price)) + 
+  geom_bar(stat = 'identity', fill = '#5188e0', col = '#095ee6', alpha = 0.8) +
+  coord_flip() +
+  ggtitle("Median price per neighbourhood group") +
+  xlab("Neighbourhood group") +
+  ylab("Median Price") +
+  scale_y_continuous(labels = dollar) +
+  geom_label(mapping = aes(label = paste('$', median_price)))
+```
+
+*NOTE:* Property price at Manhattan is highest among them and Bronx has the lowest.
+
+* Room Type
+```{r}
+unique(our.data$room_type)
+```
+
+This variable is seems to be a categorical variable, hence changing it to factors.
+```{r}
+our.data$room_type = as.factor(our.data$room_type)
+```
+
+Plot a bar graph for room type
+```{r}
+ggplot(data = our.data, mapping = aes(x = room_type)) +
+  geom_bar(fill = '#66edd4', col = '#07876f', alpha = 0.8) +
+  ggtitle("Room Type Analysis") +
+  xlab("Room Type") +
+  ylab("Count") +
+  geom_label(mapping = aes(label = ..count..), stat = 'count')
+
+```
+
+*NOTE:* Number of 'Entire home/apt' and 'Private room' is much larger than that of shared room in our data set.
+
+Creating a new data frame which contains the price median value for each room type.
+```{r}
+room_type_price_df = our.data %>%
+  group_by(room_type) %>%
+  summarise(median_price = median(price))
+
+room_type_price_df
+```
+
+Plot a bar graph for Room type and their Price (Median)
+
+```{r}
+ggplot(data = room_type_price_df, mapping = aes(x = reorder(room_type, median_price), y = median_price)) +
+  geom_bar(stat = 'identity', fill='#8eba47', col='#2a4006', alpha = 0.8) +
+  coord_flip() +
+  ggtitle("Room Type and their price (median)") +
+  xlab("Room Type") +
+  ylab("Median Price") +
+  scale_y_continuous(labels = dollar) + 
+  geom_label(mapping = aes(label = paste("$", median_price)))
+```
+
+*NOTE:* Price of 'Entire home/apt' is higher than that of 'Private Room' or 'Shared room'.
+
+Creating a dataframe that contains the percentage of room_type present in particular neighbourhood_group.
+
+```{r}
+
+neigh_room.df = our.data %>%
+  group_by(neighbourhood_group, room_type) %>%
+  summarise(count_room = n())
+
+neigh_count = neigh_room.df %>%
+  group_by(neighbourhood_group) %>%
+  summarise(sum = sum(count_room))
+
+percent_vec = c()
+
+percent_vec = ifelse(neigh_room.df$neighbourhood_group == 'Bronx', 
+                     neigh_room.df$count_room/neigh_count$sum[1], 0)
+percent_vec = ifelse(neigh_room.df$neighbourhood_group == 'Brooklyn', 
+                     neigh_room.df$count_room/neigh_count$sum[2], percent_vec)
+percent_vec = ifelse(neigh_room.df$neighbourhood_group == 'Manhattan', 
+                     neigh_room.df$count_room/neigh_count$sum[3], percent_vec)
+percent_vec = ifelse(neigh_room.df$neighbourhood_group == 'Queens', 
+                     neigh_room.df$count_room/neigh_count$sum[4], percent_vec)
+percent_vec = ifelse(neigh_room.df$neighbourhood_group == 'Staten Island', 
+                     neigh_room.df$count_room/neigh_count$sum[5], percent_vec)
+
+neigh_room.df$percentage = round(percent_vec*100, 2)
+
+neigh_room.df
+```
+
+Plotting bar graphs to find the relationship between Neighbourhood Group and Room Type.
+
+```{r out.width='150%'}
+ggplot(neigh_room.df, aes(room_type, percentage)) + 
+  geom_bar(stat = 'identity', fill='#f5ae62', col='#8a4f0f', alpha = 0.8, width = 0.5) + 
+  facet_grid(~ neighbourhood_group) +
+  geom_label(mapping = aes(label = paste(percentage, "%"))) +
+  ggtitle("Percentage of room type per neighbourhood area") +
+  xlab("Percentage") +
+  ylab("Room Type") +
+  theme(axis.text.x = element_text(angle = 45, hjust=1, vjust = 1))
+```
+
+*NOTE:* From RoomType percentage Neighbourhood area, we found out that:
+
+* **Manhattan** - large number of *Entire home* peresent as compared to *Private* and *shared*.
+* Similary, **Bronx** and **Queens** - More number of *Private room* present as compared to *Entire home* and *shared*.
+* **Broooklyn** and **Staten Island** - Have almost same number of *Entire* or *Private* property available.

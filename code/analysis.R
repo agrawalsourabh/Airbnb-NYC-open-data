@@ -10,6 +10,7 @@ library(e1071)
 library(scales)
 library(dplyr)
 library(tidyr)
+library(RColorBrewer)
 
 # importing dataset
 our.data = read.csv("input/AB_NYC_2019.csv", stringsAsFactors = F)
@@ -132,6 +133,7 @@ rt_rpm.df$percentage[2] = round(rt_rpm.df$reviews_per_month[2] / sum(rt_rpm.df$r
 rt_rpm.df$percentage[3] = round(rt_rpm.df$reviews_per_month[3] / sum(rt_rpm.df$reviews_per_month) *100
                                 , 2) 
 
+
 # room_type and number_of_reviews
 rt_total_reviews.df = our.data %>%
   group_by(room_type) %>%
@@ -147,3 +149,7 @@ rt_total_reviews.df$percentage[3] = round(rt_total_reviews.df$number_of_reviews[
 # /*
 #   Workspace saved
 #   */
+
+a = c(2, 3, 4, 5, 6)
+summary(a)
+  

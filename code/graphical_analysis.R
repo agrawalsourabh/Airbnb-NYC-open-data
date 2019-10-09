@@ -113,6 +113,19 @@ ggplot(data = rt_rpm.df, mapping = aes(x = reorder(room_type, percentage),
 
 ggsave("plots/Permonth_Review_Perc_RoomType.png")
 
+
+# Plot a pie chart 
+
+ggplot(data = rt_rpm.df, aes(x = "", y = percentage, fill = room_type)) +
+  geom_bar( stat = "identity", color = "white", fill = brewer.pal(n =3, name="Dark2")) +
+  coord_polar("y", start = 0)+
+  geom_text(aes(label = paste(percentage, "%")), color = "white", position = position_stack(vjust = 0.5))+
+  theme_void() +
+  ggtitle("Reviews per month based on room type")
+
+ggsave("plots/Permonth_Review_Perc_RoomType_PieChart.png")
+
+
 # total reviews based on room type
 ggplot(data = rt_total_reviews.df, mapping = aes(x = reorder(room_type, percentage), 
                                        y = percentage)) +
@@ -125,6 +138,17 @@ ggplot(data = rt_total_reviews.df, mapping = aes(x = reorder(room_type, percenta
 
 ggsave("plots/Review_Perc_RoomType.png")
 
+# Plot donut chart for rt_total_review.df
+ggplot(data = rt_total_reviews.df, mapping = aes(x = 2, y = percentage, fill=room_type)) +
+  geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Dark2"), col="White") + 
+  coord_polar(theta = "y") +
+  geom_text(mapping = aes(label = paste(percentage, "%")), position = position_stack(vjust = 0.5), 
+            color = "white") +
+  theme_void() +
+  xlim(0.5, 2.5) +
+  ggtitle("Total number of reviews based on room type")
+    
+ggsave("plots/Review_Perc_RoomType_Donut.png")
 
 # /*
 #   Workspace saved
