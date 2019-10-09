@@ -1,3 +1,9 @@
+
+---
+title: "Airbnb NYC open data"
+output: rmarkdown::github_document
+---
+
 # **Overview**
  Since 2008, guests and hosts have used Airbnb to expand on traveling possibilities
  and present more unique, personalized way of experiencing the world.This dataset describes
